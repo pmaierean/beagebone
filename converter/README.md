@@ -7,10 +7,9 @@ To register the converter to start at boot time of the board take the following 
 
 >crontab -e
 
-add to the end of the file: 
+Assuming that the project was store at /var/lib/cloud9/converter, add to the end of the file: 
 
-@reboot sleep 600 && /var/lib/cloud9/converter/npm run start
-
+@reboot cd /var/lib/cloud9/converter && npm run start > /var/lib/cloud9/converter/mylog.txt
 
 
 Refer to https://opensource.com/article/17/11/how-use-cron-linux 
