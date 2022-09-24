@@ -1,0 +1,23 @@
+{
+  "name": "converter",
+  "version": "1.0.0",
+  "description": "A ",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js -p src/index.html",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.1",
+    "helmet": "^5.0.2",
+    "i2c-bus": "^5.2.2",
+    "morgan": "^1.10.0",
+    "socket.io": "^4.5.0",
+    "yargs": "16.2.0"
+  },
+  "keywords": [],
+  "author": "Petre Maierean",
+  "license": "ISC"
+}

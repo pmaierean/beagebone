@@ -2,96 +2,100 @@
  * This is the ADC1115 converter
  */
 const i2c = require('i2c-bus');
+
+const I2C_0 = 0;
+const I2C_1 = 1;
+const I2C_2 = 2;
+
+const I2CDEV_DEFAULT_READ_TIMEOUT = 1000;
+const ADS1115_ADDRESS_ADDR_GND = 0x48; // address pin low (GND)
+const ADS1115_ADDRESS_ADDR_VDD = 0x49; // address pin high (VCC)
+const ADS1115_ADDRESS_ADDR_SDA = 0x4A; // address pin tied to SDA pin
+const ADS1115_ADDRESS_ADDR_SCL = 0x4B; // address pin tied to SCL pin
+const ADS1115_DEFAULT_ADDRESS = ADS1115_ADDRESS_ADDR_GND;
+
+const ADS1115_RA_CONVERSION = 0x00;
+const ADS1115_RA_CONFIG = 0x01;
+const ADS1115_RA_LO_THRESH =0x02;
+const ADS1115_RA_HI_THRESH =0x03;
+
+const ADS1115_CFG_OS_BIT = 15;
+const ADS1115_CFG_MUX_BIT = 14;
+const ADS1115_CFG_MUX_LENGTH = 3;
+const ADS1115_CFG_PGA_BIT = 11;
+const ADS1115_CFG_PGA_LENGTH = 3;
+const ADS1115_CFG_MODE_BIT =8;
+const ADS1115_CFG_DR_BIT = 7;
+const ADS1115_CFG_DR_LENGTH = 3;
+const ADS1115_CFG_COMP_MODE_BIT = 4;
+const ADS1115_CFG_COMP_POL_BIT = 3;
+const ADS1115_CFG_COMP_LAT_BIT = 2;
+const ADS1115_CFG_COMP_QUE_BIT = 1;
+const ADS1115_CFG_COMP_QUE_LENGTH = 2;
+
+const ADS1115_MUX_P0_N1 = 0x00; // default
+const ADS1115_MUX_P0_N3 = 0x01;
+const ADS1115_MUX_P1_N3 = 0x02;
+const ADS1115_MUX_P2_N3 = 0x03;
+const ADS1115_MUX_P0_NG = 0x04;
+const ADS1115_MUX_P1_NG = 0x05;
+const ADS1115_MUX_P2_NG = 0x06;
+const ADS1115_MUX_P3_NG = 0x07;
+
+const ADS1115_PGA_6P144 = 0x00;
+const ADS1115_PGA_4P096 = 0x01;
+const ADS1115_PGA_2P048 = 0x02;// default
+const ADS1115_PGA_1P024 = 0x03;
+const ADS1115_PGA_0P512 = 0x04;
+const ADS1115_PGA_0P256 = 0x05;
+const ADS1115_PGA_0P256B = 0x06;
+const ADS1115_PGA_0P256C = 0x07;
+
+const ADS1115_MV_6P144 = 0.187500;
+const ADS1115_MV_4P096 = 0.125000;
+const ADS1115_MV_2P048 = 0.062500; // default
+const ADS1115_MV_1P024 = 0.031250;
+const ADS1115_MV_0P512 = 0.015625;
+const ADS1115_MV_0P256 = 0.007813;
+const ADS1115_MV_0P256B = 0.007813;
+const ADS1115_MV_0P256C = 0.007813;
+
+const ADS1115_MODE_CONTINUOUS = 0x00;
+const ADS1115_MODE_SINGLESHOT = 0x01; // default
+
+const ADS1115_RATE_8 = 0x00;
+const ADS1115_RATE_16 = 0x01;
+const ADS1115_RATE_32 = 0x02;
+const ADS1115_RATE_64 = 0x03;
+const ADS1115_RATE_128 = 0x04; // default
+const ADS1115_RATE_250 = 0x05;
+const ADS1115_RATE_475 = 0x06;
+const ADS1115_RATE_860 = 0x07;
+
+const ADS1115_COMP_MODE_HYSTERESIS = 0x00; // default
+const ADS1115_COMP_MODE_WINDOW = 0x01;
+
+const ADS1115_COMP_POL_ACTIVE_LOW = 0x00; // default
+const ADS1115_COMP_POL_ACTIVE_HIGH = 0x01;
+
+const ADS1115_COMP_LAT_NON_LATCHING = 0x00; // default
+const ADS1115_COMP_LAT_LATCHING = 0x01;
+
+const ADS1115_COMP_QUE_ASSERT1 = 0x00;
+const ADS1115_COMP_QUE_ASSERT2 = 0x01;
+const ADS1115_COMP_QUE_ASSERT4 = 0x02;
+const ADS1115_COMP_QUE_DISABLE = 0x03; // default
+
+const O_RDONLY = 0x00;
+const O_WRONLY = 0x01;
+const O_RDWR = 0x02
+
 function ads1115() {
-    const I2CDEV_DEFAULT_READ_TIMEOUT = 1000;
-    const ADS1115_ADDRESS_ADDR_GND = 0x48; // address pin low (GND)
-    const ADS1115_ADDRESS_ADDR_VDD = 0x49; // address pin high (VCC)
-    const ADS1115_ADDRESS_ADDR_SDA = 0x4A; // address pin tied to SDA pin
-    const ADS1115_ADDRESS_ADDR_SCL = 0x4B; // address pin tied to SCL pin
-    const ADS1115_DEFAULT_ADDRESS = ADS1115_ADDRESS_ADDR_GND;
-
-    const ADS1115_RA_CONVERSION = 0x00;
-    const ADS1115_RA_CONFIG = 0x01;
-    const ADS1115_RA_LO_THRESH =0x02;
-    const ADS1115_RA_HI_THRESH =0x03;
-
-    const ADS1115_CFG_OS_BIT = 15;
-    const ADS1115_CFG_MUX_BIT = 14;
-    const ADS1115_CFG_MUX_LENGTH = 3;
-    const ADS1115_CFG_PGA_BIT = 11;
-    const ADS1115_CFG_PGA_LENGTH = 3;
-    const ADS1115_CFG_MODE_BIT =8;
-    const ADS1115_CFG_DR_BIT = 7;
-    const ADS1115_CFG_DR_LENGTH = 3;
-    const ADS1115_CFG_COMP_MODE_BIT = 4;
-    const ADS1115_CFG_COMP_POL_BIT = 3;
-    const ADS1115_CFG_COMP_LAT_BIT = 2;
-    const ADS1115_CFG_COMP_QUE_BIT = 1;
-    const ADS1115_CFG_COMP_QUE_LENGTH = 2;
-
-    const ADS1115_MUX_P0_N1 = 0x00; // default
-    const ADS1115_MUX_P0_N3 = 0x01;
-    const ADS1115_MUX_P1_N3 = 0x02;
-    const ADS1115_MUX_P2_N3 = 0x03;
-    const ADS1115_MUX_P0_NG = 0x04;
-    const ADS1115_MUX_P1_NG = 0x05;
-    const ADS1115_MUX_P2_NG = 0x06;
-    const ADS1115_MUX_P3_NG = 0x07;
-
-    const ADS1115_PGA_6P144 = 0x00;
-    const ADS1115_PGA_4P096 = 0x01;
-    const ADS1115_PGA_2P048 = 0x02;// default
-    const ADS1115_PGA_1P024 = 0x03;
-    const ADS1115_PGA_0P512 = 0x04;
-    const ADS1115_PGA_0P256 = 0x05;
-    const ADS1115_PGA_0P256B = 0x06;
-    const ADS1115_PGA_0P256C = 0x07;
-
-    const ADS1115_MV_6P144 = 0.187500;
-    const ADS1115_MV_4P096 = 0.125000;
-    const ADS1115_MV_2P048 = 0.062500; // default
-    const ADS1115_MV_1P024 = 0.031250;
-    const ADS1115_MV_0P512 = 0.015625;
-    const ADS1115_MV_0P256 = 0.007813;
-    const ADS1115_MV_0P256B = 0.007813;
-    const ADS1115_MV_0P256C = 0.007813;
-
-    const ADS1115_MODE_CONTINUOUS = 0x00;
-    const ADS1115_MODE_SINGLESHOT = 0x01; // default
-
-    const ADS1115_RATE_8 = 0x00;
-    const ADS1115_RATE_16 = 0x01;
-    const ADS1115_RATE_32 = 0x02;
-    const ADS1115_RATE_64 = 0x03;
-    const ADS1115_RATE_128 = 0x04; // default
-    const ADS1115_RATE_250 = 0x05;
-    const ADS1115_RATE_475 = 0x06;
-    const ADS1115_RATE_860 = 0x07;
-
-    const ADS1115_COMP_MODE_HYSTERESIS = 0x00; // default
-    const ADS1115_COMP_MODE_WINDOW = 0x01;
-
-    const ADS1115_COMP_POL_ACTIVE_LOW = 0x00; // default
-    const ADS1115_COMP_POL_ACTIVE_HIGH = 0x01;
-
-    const ADS1115_COMP_LAT_NON_LATCHING = 0x00; // default
-    const ADS1115_COMP_LAT_LATCHING = 0x01;
-
-    const ADS1115_COMP_QUE_ASSERT1 = 0x00;
-    const ADS1115_COMP_QUE_ASSERT2 = 0x01;
-    const ADS1115_COMP_QUE_ASSERT4 = 0x02;
-    const ADS1115_COMP_QUE_DISABLE = 0x03; // default
-
-    const O_RDONLY = 0x00;
-    const O_WRONLY = 0x01;
-    const O_RDWR = 0x02
-
-
     var devAddr;
     var devMode = false;
     var muxMode;
     var pgaMode;
-
+    var i2cChannel = I2C_1;
 
     /** Power on and prepare for general usage.
      * This device is ready to use automatically upon power-up. It defaults to
@@ -432,14 +436,9 @@ function ads1115() {
      * @see ADS1115_CFG_PGA_LENGTH
      */
     this.getGain = function() {
-        var buffer = new Array(ADS1115_CFG_PGA_LENGTH);
-        var count = this.readBitsW(ADS1115_RA_CONFIG, ADS1115_CFG_PGA_BIT, ADS1115_CFG_PGA_LENGTH, buffer);
-        if (count >= 1) {
-            this.pgaMode = buffer[0];
-        }
-        else {
-            console.log('Could not read gain: ' + count);
-        }
+        var buffer = new Array(1);
+        this.readBitsW(ADS1115_RA_CONFIG, ADS1115_CFG_PGA_BIT, ADS1115_CFG_PGA_LENGTH, buffer);
+        this.pgaMode = buffer[0];
         return this.pgaMode;
     };
 
@@ -459,16 +458,13 @@ function ads1115() {
      * @see ADS1115_CFG_PGA_LENGTH
      */
     this.setGain = function(gain) {
-        if (gain !== undefined) {
+        if (this.writeBitsW(ADS1115_RA_CONFIG, ADS1115_CFG_PGA_BIT, ADS1115_CFG_PGA_LENGTH, gain)) {
             this.pgaMode = gain;
-            console.log('Set gain: ' + this.pgaMode);
-            if (this.writeBitsW(ADS1115_RA_CONFIG, ADS1115_CFG_PGA_BIT, ADS1115_CFG_PGA_LENGTH, gain)) {
-                if (this.devMode == ADS1115_MODE_CONTINUOUS) {
-                    // Force a stop/start
-                    this.setMode(ADS1115_MODE_SINGLESHOT);
-                    this.getConversion();
-                    this.setMode(ADS1115_MODE_CONTINUOUS);
-                }
+            if (this.devMode == ADS1115_MODE_CONTINUOUS) {
+                // Force a stop/start
+                this.setMode(ADS1115_MODE_SINGLESHOT);
+                this.getConversion();
+                this.setMode(ADS1115_MODE_CONTINUOUS);
             }
         }
     };
@@ -495,12 +491,8 @@ function ads1115() {
      * @see ADS1115_CFG_MODE_BIT
      */
     this.setMode = function(mode) {
-        if (this.writeBitW(ADS1115_RA_CONFIG, ADS1115_CFG_MODE_BIT, mode) < 1) {
-            console.log('Failed to write mode ' + mode);
-        }
-        else {
+        if (this.writeBitW(ADS1115_RA_CONFIG, ADS1115_CFG_MODE_BIT, mode)) {
             this.devMode = mode;
-            console.log('Mode is ' + mode);
         }
     };
 
@@ -511,11 +503,9 @@ function ads1115() {
      * @see ADS1115_CFG_DR_LENGTH
      */
     this.getRate = function() {
-        var buffer = new Array[1];
-        if (this.readBitsW(ADS1115_RA_CONFIG, ADS1115_CFG_DR_BIT, ADS1115_CFG_DR_LENGTH, buffer) > 0) {
-            return buffer[0];
-        }
-        return -1;
+        var buffer = new Array[0];
+        this.readBitsW(ADS1115_RA_CONFIG, ADS1115_CFG_DR_BIT, ADS1115_CFG_DR_LENGTH, buffer);
+        return buffer[0];
     };
 
     /** Set data rate.
@@ -533,9 +523,7 @@ function ads1115() {
      * @see ADS1115_CFG_DR_LENGTH
      */
     this.setRate = function(rate) {
-        if (this.writeBitsW(ADS1115_RA_CONFIG, ADS1115_CFG_DR_BIT, ADS1115_CFG_DR_LENGTH, rate) > 0) {
-            console.log('Rate is: ' + rate);
-        }
+        this.writeBitsW(ADS1115_RA_CONFIG, ADS1115_CFG_DR_BIT, ADS1115_CFG_DR_LENGTH, rate);
     };
 
     /** Get comparator mode.
@@ -712,20 +700,21 @@ function ads1115() {
     /**
      * Show all the config register settings
      */
-    this.showConfigRegister = function() {
+    this.getConfigRegister = function() {
         var buf = new Array(1);
         this.readWords(ADS1115_RA_CONFIG, 1, buf);
         var configRegister = buf[0];
-        console.log("Register is: " + configRegister);
-        console.log("OS: " + this.getValueFromBits(configRegister, ADS1115_CFG_OS_BIT,1));
-        console.log("MUX: " + this.getValueFromBits(configRegister, ADS1115_CFG_MUX_BIT,ADS1115_CFG_MUX_LENGTH));
-        console.log("PGA: " + this.getValueFromBits(configRegister, ADS1115_CFG_PGA_BIT,ADS1115_CFG_PGA_LENGTH));
-        console.log("MODE: " +this.getValueFromBits(configRegister, ADS1115_CFG_MODE_BIT,1));
-        console.log("DR: " + this.getValueFromBits(configRegister, ADS1115_CFG_DR_BIT,ADS1115_CFG_DR_LENGTH));
-        console.log("CMP_MODE: ", this.getValueFromBits(configRegister, ADS1115_CFG_COMP_MODE_BIT,1));
-        console.log("CMP_POL: ", this.getValueFromBits(configRegister,  ADS1115_CFG_COMP_POL_BIT,1));
-        console.log("CMP_LAT: ", this.getValueFromBits(configRegister, ADS1115_CFG_COMP_LAT_BIT,1));
-        console.log("CMP_QUE: ", this.getValueFromBits(configRegister,  ADS1115_CFG_COMP_QUE_BIT,ADS1115_CFG_COMP_QUE_LENGTH));
+        return {
+            "OS": this.getValueFromBits(configRegister, ADS1115_CFG_OS_BIT,1),
+            "MUX": this.getValueFromBits(configRegister, ADS1115_CFG_MUX_BIT,ADS1115_CFG_MUX_LENGTH),
+            "PGA": this.getValueFromBits(configRegister, ADS1115_CFG_PGA_BIT,ADS1115_CFG_PGA_LENGTH),
+            "MODE": this.getValueFromBits(configRegister, ADS1115_CFG_MODE_BIT,1),
+            "DR": this.getValueFromBits(configRegister, ADS1115_CFG_DR_BIT,ADS1115_CFG_DR_LENGTH),
+            "CMP_MODE": this.getValueFromBits(configRegister, ADS1115_CFG_COMP_MODE_BIT,1),
+            "CMP_POL": this.getValueFromBits(configRegister,  ADS1115_CFG_COMP_POL_BIT,1),
+            "CMP_LAT": this.getValueFromBits(configRegister, ADS1115_CFG_COMP_LAT_BIT,1),
+            "CMP_QUE": this.getValueFromBits(configRegister,  ADS1115_CFG_COMP_QUE_BIT,ADS1115_CFG_COMP_QUE_LENGTH)
+        };
     };
 
 
@@ -735,12 +724,12 @@ function ads1115() {
         //    xxx           args: bitStart=12, length=3
         //    010           masked#include <errno.h>
         //           -> 010 shifted
+        var count;
         var w = new Array(1);
-        var count = this.readWords(regAddr, 1, w);
-        if (count == 1) {
+        if ((count =this.readWords(regAddr, 1, w)) != 0) {
             var mask = ((1 << length) - 1) << (bitStart - length + 1);
-            w[0] &= mask;
-            w[0] >>= (bitStart - length + 1);
+            w &= mask;
+            w >>= (bitStart - length + 1);
             data[0] = w[0];
         }
         return count;
@@ -756,8 +745,7 @@ function ads1115() {
     this.readWords = function(regAddr, length, data) {
         var buff = new Array(length * 2);
 
-        var count = this.readBytes(regAddr, length * 2, buff);
-        if (count === length * 2) {
+        if (this.readBytes(regAddr, length * 2, buff) > 0) {
             for (var i = 0; i < length; i++) {
                 data[i] = (buff[i * 2] << 8) | buff[i * 2 + 1];
             }
@@ -771,14 +759,14 @@ function ads1115() {
         if (isNaN(this.devAddr)) {
             throw 'no initialized for reading';
         }
-        var fd = i2c.openSync(2, O_RDWR);
+        var fd = i2c.openSync(i2cChannel, O_RDWR);
 
-        var buf = Buffer.from([regAddr]);
+        const buf = Buffer.from([regAddr]);
         if (fd.i2cWriteSync(this.devAddr, 1, buf) !== 1) {
             throw 'could not write to select registry at ' + regAddr;
         }
 
-        var rbuf = Buffer.alloc(length);
+        const rbuf = Buffer.alloc(length);
         if (fd.i2cReadSync(this.devAddr, length, rbuf) != length) {
             throw 'could not read from the selected registry at ' + regAddr;
         }
@@ -804,14 +792,13 @@ function ads1115() {
         // 1010111110010110 original value (sample)
         // 1010001110010110 original & ~mask
         // 1010101110010110 masked | value
-        var w = new Array(1);
+        let w = new Array(1);
         if (this.readWords(regAddr, 1, w) != 0) {
             var mask = ((1 << length) - 1) << (bitStart - length + 1);
             data <<= (bitStart - length + 1); // shift data into correct position
             data &= mask;                     // zero all non-important bits in data
-            w[0] &= ~(mask);                // zero all important bits in existing word
-            w[0] |= data;                        // combine data with existing word
-            console.log('Write ' + w[0]);
+            w &= ~(mask);                // zero all important bits in existing word
+            w |= data;                        // combine data with existing word
             return this.writeWord(regAddr, w);
         } else {
             return false;
@@ -820,22 +807,15 @@ function ads1115() {
 
     this.writeBitW = function(regAddr, bitNum, data) {
         var w = new Array(1);
-        if (this.readWords(regAddr, 1, w) === 1) {
-            var r = 0;
-            if (data !== 0) {
-                r = (w[0] | (1 << bitNum)) ;
-            }
-            else {
-                r = (w[0] & ~(1 << bitNum));
-            }
-            w[0] = r;
-            return this.writeWord(regAddr, w);
-        }
-        return -1;
+        this.readWords(regAddr, 1, w);
+        w = (data != 0) ? (w | (1 << bitNum)) : (w & ~(1 << bitNum));
+        return this.writeWord(regAddr, w);
     }
 
     this.writeWord = function(regAddr, data) {
-        return this.writeWords(regAddr, 1, data);
+        var v = new Array(1);
+        v[0] = data;
+        return this.writeWords(regAddr, 1, v);
     }
 
     this.writeWords = function(regAddr, length,	data) {
@@ -853,7 +833,7 @@ function ads1115() {
         if (isNaN(this.devAddr)) {
             throw 'no initialized for writting';
         }
-        var fd = i2c.openSync(2, O_RDWR);
+        var fd = i2c.openSync(i2cChannel, O_RDWR);
 
         var buff_length = length + 1;
         var buff = new Array(buff_length);
@@ -861,7 +841,7 @@ function ads1115() {
         for(var i=0; i< length; i++) {
             buff[i+1] = data[i];
         }
-        var buf = Buffer.from(buff);
+        const buf = Buffer.from(buff);
 
         if (fd.i2cWriteSync(this.devAddr, buff_length, buf) !== buff_length) {
             throw 'could not write to select registry at ' + regAddr;

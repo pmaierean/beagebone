@@ -9,22 +9,16 @@ const morgan = require('morgan');
 const r = require('./ads1115');
 
 var ads1115 = new r();
-var isAvailable = false;
 
-console.log('Initialize connection');
-ads1115.initialize();
-isAvailable = ads1115.testConnection();
-console.log('The connection is ' + (isAvailable ? "available" : "not available"));
-if (isAvailable) {
-    // We're going to do single shot sampling
-    ads1115.setMode(1);
-    // Slow things down so that we can see that the "poll for conversion" code works
-    ads1115.setRate(0);
-    // Set the gain (PGA) +/- 6.144V
-    // Note that any analog input must be higher than –0.3V and less than VDD +0.3
-    ads1115.setGain(0);
-    ads1115.setConversionReadyPinMode();
-    ads1115.setMultiplexer(0);
+try {
+    console.log('Initialize connection');
+    ads1115.initialize();
+    ads1115.testConnection();
+    console.log('The connection is all right');
+}
+catch(e) {
+    console.log('An error happend');
+    console.log(e);
 }
 
 const fs = require("fs");
@@ -73,78 +67,58 @@ if (fs.existsSync(htmlPage)) {
     app.get('/value', (req, res) => {
         res.setHeader('content-type', 'application/json');
         res.writeHead(200);
-        var val;
-        var gain;
-        if (isAvailable) {
-            try {
-                ads1115.triggerConversion();
-                val = ads1115.getMilliVolts(false);
-                gain = ads1115.getGain();
-            }
-            catch(e) {
-                console.log(e);
-                val = 'Error';
-            }
+        let gain = req.body.gain;
+        if (gain) {
+            ads1115.setGain(gain);
         }
-        else {
-            val = 'N/A';
+        let mux = req.body.mux;
+        if (mux) {
+            ads1115.setMultiplexer(mux);
         }
-        res.end('{"result": ' + val + ', "Gain": ' + gain + ', "multiplexer": ' + ads1115.getMultiplexer() + '}');
+        let mode = req.body.mode;
+        if (mode) {
+            ads1115.setMode(mode);
+        }
+        let triggerAndPoll = true;
+        if (req.body.triggerAndPole) {
+            triggerAndPoll = req.body.triggerAndPole;
+        }
+        let val = ads1115.getMilliVolts(triggerAndPoll);
+        res.end('{"value":' + val + '}');
     });
 
     app.post('/gain', (req, res) => {
-        if (req.body.gain !== undefined) {
-            ads1115.setGain(req.body.gain);
-            res.setHeader('content-type', 'application/json');
-            res.writeHead(200);
-            var val;
-            var gain;
-            if (isAvailable) {
-                try {
-                    ads1115.triggerConversion();
-                    val = ads1115.getMilliVolts(false);
-                    gain = ads1115.getGain();
-                }
-                catch(e) {
-                    console.log(e);
-                    val = 'Error';
-                }
-            }
-            else {
-                val = 'N/A';
-            }
-            res.end('{"result": ' + val + ', "gain": ' + gain + '}');
+        res.setHeader('content-type', 'application/json');
+        res.writeHead(200);
+        let gain = req.body.gain;
+        if (gain) {
+            ads1115.setGain(gain);
         }
-        else {
-            res.end('{"result": "Error. No gain"}');
-        }
+        let val = ads1115.getConfigRegister();
+        res.end(JSON.stringify(val));
     });
 
-    app.post('/multiplexer', (req, res) => {
-        if (req.body.multiplexer !== undefined) {
-            var mux = req.body.multiplexer;
-            var val = 'N/A';
+    app.post('/mux', (req, res) => {
+        res.setHeader('content-type', 'application/json');
+        res.writeHead(200);
+        let mux = req.body.mux;
+        if (mux) {
             ads1115.setMultiplexer(mux);
-            res.setHeader('content-type', 'application/json');
-            res.writeHead(200);
-            if (isAvailable) {
-                try {
-                    ads1115.triggerConversion();
-                    val = ads1115.getMilliVolts(false);
-                }
-                catch(e) {
-                    console.log(e);
-                    val = 'Error';
-                }
-            }
-            mux = ads1115.getMultiplexer();
-            res.end('{"result": ' + val + ', "multiplexer": ' + mux + '}');
         }
-        else {
-            res.end('{"result": "Error. No multiplexer"}');
-        }
+        let val = ads1115.getConfigRegister();
+        res.end(JSON.stringify(val));
     });
 
+    app.post('/mode', (req, res) => {
+        res.setHeader('content-type', 'application/json');
+        res.writeHead(200);
+        let mode = req.body.mode;
+        if (mode) {
+            ads1115.setMode(mode);
+        }
+        let val = ads1115.getConfigRegister();
+        res.end(JSON.stringify(val));
+    });
 
 // starting the server
     app.listen(8081, () => {
